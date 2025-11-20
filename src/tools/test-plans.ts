@@ -16,6 +16,7 @@ const Test_Plan_Tools = {
   list_test_cases: "testplan_list_test_cases",
   list_test_plans: "testplan_list_test_plans",
   create_test_suite: "testplan_create_test_suite",
+  get_test_suite_tree_flat: "testplan_get_test_suite_tree_flat",
 };
 
 function configureTestPlanTools(server: McpServer, _: () => Promise<AuthToken>, connectionProvider: () => Promise<WebApi>) {
@@ -100,6 +101,60 @@ function configureTestPlanTools(server: McpServer, _: () => Promise<AuthToken>, 
 
       return {
         content: [{ type: "text", text: JSON.stringify(createdTestSuite, null, 2) }],
+      };
+    }
+  );
+
+  server.tool(
+    Test_Plan_Tools.get_test_suite_tree_flat,
+    "Retrieves a flat list of all leaf test suites (suites without children) for a test plan with their full hierarchical paths.",
+    {
+      project: z.string().describe("The unique identifier (ID or name) of the Azure DevOps project."),
+      planId: z.number().describe("The ID of the test plan."),
+      continuationToken: z.string().optional().describe("Token to continue fetching test suites from a previous request for pagination."),
+    },
+    async ({ project, planId, continuationToken }) => {
+      const connection = await connectionProvider();
+      const testPlanApi = await connection.getTestPlanApi();
+
+      // Fetch all suites with children expanded
+      const testSuites = await testPlanApi.getTestSuitesForPlan(project, planId, 1, continuationToken, true);
+
+      // Helper function to recursively build flat list of leaf suites with paths
+      interface FlatSuite {
+        id: number;
+        name: string;
+        path: string;
+      }
+
+      const flattenSuites = (suites: any[], parentPath: string = ""): FlatSuite[] => {
+        const result: FlatSuite[] = [];
+
+        for (const suite of suites) {
+          const currentPath = parentPath ? `${parentPath} / ${suite.name}` : suite.name;
+
+          if (suite.children && suite.children.length > 0) {
+            // If suite has children, recurse into them
+            result.push(...flattenSuites(suite.children, currentPath));
+          } else {
+            // Leaf node - add to result
+            result.push({
+              id: suite.id,
+              name: suite.name,
+              path: currentPath,
+            });
+          }
+        }
+
+        return result;
+      };
+
+      // Convert the paged list to an array
+      const suitesArray = Array.from(testSuites);
+      const flatSuites = flattenSuites(suitesArray);
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(flatSuites, null, 2) }],
       };
     }
   );

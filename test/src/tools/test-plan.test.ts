@@ -38,6 +38,7 @@ describe("configureTestPlanTools", () => {
       createTestSuite: jest.fn(),
       addTestCasesToSuite: jest.fn(),
       getTestCaseList: jest.fn(),
+      getTestSuitesForPlan: jest.fn(),
     } as unknown as ITestPlanApi;
     mockTestResultsApi = {
       getTestResultDetailsForBuild: jest.fn(),
@@ -67,6 +68,7 @@ describe("configureTestPlanTools", () => {
           "testplan_list_test_plans",
           "testplan_create_test_plan",
           "testplan_create_test_suite",
+          "testplan_get_test_suite_tree_flat",
           "testplan_add_test_cases_to_suite",
           "testplan_create_test_case",
           "testplan_update_test_case_steps",
@@ -241,6 +243,140 @@ describe("configureTestPlanTools", () => {
       const result = await handler(params);
 
       expect(result.content[0].text).toBe(JSON.stringify(null, null, 2));
+    });
+  });
+
+  describe("get_test_suite_tree_flat tool", () => {
+    it("should return flat list of leaf suites with full paths", async () => {
+      configureTestPlanTools(server, tokenProvider, connectionProvider);
+      const call = (server.tool as jest.Mock).mock.calls.find(([toolName]) => toolName === "testplan_get_test_suite_tree_flat");
+      if (!call) throw new Error("testplan_get_test_suite_tree_flat tool not registered");
+      const [, , , handler] = call;
+
+      const mockTreeData = [
+        {
+          id: 1,
+          name: "Root Suite",
+          suiteType: "StaticTestSuite",
+          children: [
+            {
+              id: 2,
+              name: "Child Suite 1",
+              suiteType: "StaticTestSuite",
+              children: [
+                {
+                  id: 4,
+                  name: "Grandchild Suite",
+                  suiteType: "StaticTestSuite",
+                  children: [],
+                },
+              ],
+            },
+            {
+              id: 3,
+              name: "Child Suite 2",
+              suiteType: "StaticTestSuite",
+              children: [],
+            },
+          ],
+        },
+      ];
+
+      (mockTestPlanApi.getTestSuitesForPlan as jest.Mock).mockResolvedValue(mockTreeData);
+
+      const params = {
+        project: "proj1",
+        planId: 1,
+      };
+      const result = await handler(params);
+
+      const expectedFlat = [
+        {
+          id: 4,
+          name: "Grandchild Suite",
+          path: "Root Suite / Child Suite 1 / Grandchild Suite",
+        },
+        {
+          id: 3,
+          name: "Child Suite 2",
+          path: "Root Suite / Child Suite 2",
+        },
+      ];
+
+      expect(mockTestPlanApi.getTestSuitesForPlan).toHaveBeenCalledWith("proj1", 1, 1, undefined, true);
+      expect(result.content[0].text).toBe(JSON.stringify(expectedFlat, null, 2));
+    });
+
+    it("should handle continuationToken for pagination", async () => {
+      configureTestPlanTools(server, tokenProvider, connectionProvider);
+      const call = (server.tool as jest.Mock).mock.calls.find(([toolName]) => toolName === "testplan_get_test_suite_tree_flat");
+      if (!call) throw new Error("testplan_get_test_suite_tree_flat tool not registered");
+      const [, , , handler] = call;
+
+      const mockTreeData = [
+        {
+          id: 5,
+          name: "Suite Page 2",
+          suiteType: "StaticTestSuite",
+          children: [],
+        },
+      ];
+
+      (mockTestPlanApi.getTestSuitesForPlan as jest.Mock).mockResolvedValue(mockTreeData);
+
+      const params = {
+        project: "proj1",
+        planId: 1,
+        continuationToken: "page-2-token",
+      };
+      const result = await handler(params);
+
+      const expectedFlat = [
+        {
+          id: 5,
+          name: "Suite Page 2",
+          path: "Suite Page 2",
+        },
+      ];
+
+      expect(mockTestPlanApi.getTestSuitesForPlan).toHaveBeenCalledWith("proj1", 1, 1, "page-2-token", true);
+      expect(result.content[0].text).toBe(JSON.stringify(expectedFlat, null, 2));
+    });
+
+    it("should handle API errors when getting test suite tree", async () => {
+      configureTestPlanTools(server, tokenProvider, connectionProvider);
+      const call = (server.tool as jest.Mock).mock.calls.find(([toolName]) => toolName === "testplan_get_test_suite_tree_flat");
+      if (!call) throw new Error("testplan_get_test_suite_tree_flat tool not registered");
+      const [, , , handler] = call;
+
+      (mockTestPlanApi.getTestSuitesForPlan as jest.Mock).mockRejectedValue(new Error("API Error"));
+
+      const params = {
+        project: "proj1",
+        planId: 1,
+      };
+
+      await expect(handler(params)).rejects.toThrow("API Error");
+    });
+
+    it("should return empty array when no suites exist", async () => {
+      configureTestPlanTools(server, tokenProvider, connectionProvider);
+      const call = (server.tool as jest.Mock).mock.calls.find(([toolName]) => toolName === "testplan_get_test_suite_tree_flat");
+      if (!call) throw new Error("testplan_get_test_suite_tree_flat tool not registered");
+      const [, , , handler] = call;
+
+      const mockTreeData: any[] = [];
+
+      (mockTestPlanApi.getTestSuitesForPlan as jest.Mock).mockResolvedValue(mockTreeData);
+
+      const params = {
+        project: "proj1",
+        planId: 99,
+      };
+      const result = await handler(params);
+
+      expect(mockTestPlanApi.getTestSuitesForPlan).toHaveBeenCalledWith("proj1", 99, 1, undefined, true);
+      expect(result.content[0].text).toBe(JSON.stringify([], null, 2));
     });
   });
 

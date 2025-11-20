@@ -15,7 +15,7 @@ module.exports = {
   clearMocks: true,
 
   // Collect code coverage information
-  collectCoverage: true,
+  collectCoverage: false,
 
   // Output directory for coverage reports
   coverageDirectory: "coverage",
