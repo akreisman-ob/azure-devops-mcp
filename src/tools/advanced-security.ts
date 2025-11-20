@@ -3,6 +3,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "./authToken.js";
 import { AlertType, AlertValidityStatus, Confidence, Severity, State } from "azure-devops-node-api/interfaces/AlertInterfaces.js";
 import { z } from "zod";
 import { getEnumKeys, mapStringArrayToEnum, mapStringToEnum } from "../utils.js";
@@ -12,7 +13,7 @@ const ADVSEC_TOOLS = {
   get_alert_details: "advsec_get_alert_details",
 };
 
-function configureAdvSecTools(server: McpServer, _: () => Promise<string>, connectionProvider: () => Promise<WebApi>) {
+function configureAdvSecTools(server: McpServer, _: () => Promise<AuthToken>, connectionProvider: () => Promise<WebApi>) {
   server.tool(
     ADVSEC_TOOLS.get_alerts,
     "Retrieve Advanced Security alerts for a repository.",

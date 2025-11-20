@@ -3,6 +3,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "./authToken.js";
 import { z } from "zod";
 import { TreeStructureGroup, TreeNodeStructureType, WorkItemClassificationNode } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces.js";
 import path from "path";
@@ -17,7 +18,7 @@ const WORK_TOOLS = {
   get_iteration_capacities: "work_get_iteration_capacities",
 };
 
-function configureWorkTools(server: McpServer, _: () => Promise<string>, connectionProvider: () => Promise<WebApi>) {
+function configureWorkTools(server: McpServer, _: () => Promise<AuthToken>, connectionProvider: () => Promise<WebApi>) {
   server.tool(
     WORK_TOOLS.list_team_iterations,
     "Retrieve a list of iterations for a specific team in a project.",

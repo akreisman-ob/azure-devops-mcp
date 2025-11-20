@@ -7,6 +7,7 @@ import { IGitApi } from "azure-devops-node-api/GitApi.js";
 import { z } from "zod";
 import { apiVersion } from "../utils.js";
 import { orgName } from "../index.js";
+import { AuthToken } from "./authToken.js";
 import { VersionControlRecursionType } from "azure-devops-node-api/interfaces/GitInterfaces.js";
 import { GitItem } from "azure-devops-node-api/interfaces/GitInterfaces.js";
 
@@ -16,7 +17,7 @@ const SEARCH_TOOLS = {
   search_workitem: "search_workitem",
 };
 
-function configureSearchTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configureSearchTools(server: McpServer, tokenProvider: () => Promise<AuthToken>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
   server.tool(
     SEARCH_TOOLS.search_code,
     "Search Azure DevOps Repositories for a given search text",
@@ -31,7 +32,7 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
       top: z.number().default(5).describe("Maximum number of results to return"),
     },
     async ({ searchText, project, repository, path, branch, includeFacets, skip, top }) => {
-      const accessToken = await tokenProvider();
+      const authToken = await tokenProvider();
       const connection = await connectionProvider();
       const url = `https://almsearch.dev.azure.com/${orgName}/_apis/search/codesearchresults?api-version=${apiVersion}`;
 
@@ -56,14 +57,14 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `${authToken.type} ${authToken.token}`,
           "User-Agent": userAgentProvider(),
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error(`Azure DevOps Code Search API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Azure DevOps Work Item Search API error: ${response.status} ${response.statusText}`);
       }
 
       const resultText = await response.text();
@@ -90,7 +91,7 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
       top: z.number().default(10).describe("Maximum number of results to return"),
     },
     async ({ searchText, project, wiki, includeFacets, skip, top }) => {
-      const accessToken = await tokenProvider();
+      const authToken = await tokenProvider();
       const url = `https://almsearch.dev.azure.com/${orgName}/_apis/search/wikisearchresults?api-version=${apiVersion}`;
 
       const requestBody: Record<string, unknown> = {
@@ -112,7 +113,7 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `${authToken.type} ${authToken.token}`,
           "User-Agent": userAgentProvider(),
         },
         body: JSON.stringify(requestBody),
@@ -144,7 +145,7 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
       top: z.number().default(10).describe("Number of results to return"),
     },
     async ({ searchText, project, areaPath, workItemType, state, assignedTo, includeFacets, skip, top }) => {
-      const accessToken = await tokenProvider();
+      const authToken = await tokenProvider();
       const url = `https://almsearch.dev.azure.com/${orgName}/_apis/search/workitemsearchresults?api-version=${apiVersion}`;
 
       const requestBody: Record<string, unknown> = {
@@ -169,14 +170,14 @@ function configureSearchTools(server: McpServer, tokenProvider: () => Promise<st
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `${authToken.type} ${authToken.token}`,
           "User-Agent": userAgentProvider(),
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error(`Azure DevOps Work Item Search API error: ${response.status} ${response.statusText}`);
+        throw new Error(`Azure DevOps Wiki Search API error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.text();

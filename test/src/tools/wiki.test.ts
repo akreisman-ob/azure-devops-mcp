@@ -4,9 +4,10 @@
 import { describe, expect, it } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "../../../src/tools/authToken";
 import { configureWikiTools } from "../../../src/tools/wiki";
 
-type TokenProviderMock = () => Promise<string>;
+type TokenProviderMock = () => Promise<AuthToken>;
 type ConnectionProviderMock = () => Promise<WebApi>;
 interface WikiApiMock {
   getWiki: jest.Mock;
@@ -344,7 +345,7 @@ describe("configureWikiTools", () => {
     beforeEach(() => {
       mockFetch = jest.fn();
       global.fetch = mockFetch;
-      (tokenProvider as jest.Mock).mockResolvedValue("test-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("test-token"));
     });
 
     it("should fetch page metadata with correct parameters", async () => {
@@ -856,7 +857,7 @@ describe("configureWikiTools", () => {
       mockFetch = jest.fn();
       global.fetch = mockFetch;
 
-      tokenProvider = jest.fn().mockResolvedValue("test-token");
+      tokenProvider = jest.fn().mockResolvedValue(AuthToken.withApiToken("test-token"));
 
       mockConnection = {
         getWikiApi: jest.fn().mockResolvedValue(mockWikiApi),

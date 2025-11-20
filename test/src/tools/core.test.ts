@@ -5,8 +5,9 @@ import { describe, expect, it } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { configureCoreTools } from "../../../src/tools/core";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "../../../src/tools/authToken";
 
-type TokenProviderMock = () => Promise<string>;
+type TokenProviderMock = () => Promise<AuthToken>;
 type ConnectionProviderMock = () => Promise<WebApi>;
 
 interface CoreApiMock {
@@ -436,7 +437,7 @@ describe("configureCoreTools", () => {
       const [, , , handler] = call;
 
       // Mock token provider
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
 
       // Mock connection with serverUrl
       const mockConnectionWithUrl = {
@@ -501,7 +502,7 @@ describe("configureCoreTools", () => {
       if (!call) throw new Error("core_get_identity_ids tool not registered");
       const [, , , handler] = call;
 
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
       const mockConnectionWithUrl = {
         ...mockConnection,
         serverUrl: "https://dev.azure.com/test-org",
@@ -529,7 +530,7 @@ describe("configureCoreTools", () => {
       if (!call) throw new Error("core_get_identity_ids tool not registered");
       const [, , , handler] = call;
 
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
       const mockConnectionWithUrl = {
         ...mockConnection,
         serverUrl: "https://dev.azure.com/test-org",
@@ -556,7 +557,7 @@ describe("configureCoreTools", () => {
       if (!call) throw new Error("core_get_identity_ids tool not registered");
       const [, , , handler] = call;
 
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
       const mockConnectionWithUrl = {
         ...mockConnection,
         serverUrl: "https://dev.azure.com/test-org",
@@ -583,7 +584,7 @@ describe("configureCoreTools", () => {
       if (!call) throw new Error("core_get_identity_ids tool not registered");
       const [, , , handler] = call;
 
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
       const mockConnectionWithUrl = {
         ...mockConnection,
         serverUrl: "https://dev.azure.com/test-org",
@@ -607,7 +608,7 @@ describe("configureCoreTools", () => {
       if (!call) throw new Error("core_get_identity_ids tool not registered");
       const [, , , handler] = call;
 
-      (tokenProvider as jest.Mock).mockResolvedValue("fake-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("fake-token"));
       const mockConnectionWithUrl = {
         ...mockConnection,
         serverUrl: "https://dev.azure.com/test-org",

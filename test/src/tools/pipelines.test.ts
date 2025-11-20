@@ -4,6 +4,7 @@
 import { describe, expect, it, beforeEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "../../../src/tools/authToken";
 import { StageUpdateType } from "azure-devops-node-api/interfaces/BuildInterfaces.js";
 import { configurePipelineTools } from "../../../src/tools/pipelines";
 import { apiVersion } from "../../../src/utils.js";
@@ -12,7 +13,7 @@ import { mockUpdateBuildStageResponse } from "../../mocks/pipelines";
 // Mock fetch globally
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
-type TokenProviderMock = () => Promise<string>;
+type TokenProviderMock = () => Promise<AuthToken>;
 type ConnectionProviderMock = () => Promise<WebApi>;
 
 describe("configurePipelineTools", () => {
@@ -50,7 +51,7 @@ describe("configurePipelineTools", () => {
       const [, , , handler] = call;
 
       // Mock the token provider
-      (tokenProvider as jest.Mock).mockResolvedValue("mock-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("mock-token"));
 
       // Mock successful fetch response
       const mockResponse = {
@@ -92,7 +93,7 @@ describe("configurePipelineTools", () => {
       const [, , , handler] = call;
 
       // Mock the token provider
-      (tokenProvider as jest.Mock).mockResolvedValue("mock-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("mock-token"));
 
       // Mock failed fetch response
       const mockResponse = {
@@ -133,7 +134,7 @@ describe("configurePipelineTools", () => {
       const [, , , handler] = call;
 
       // Mock the token provider
-      (tokenProvider as jest.Mock).mockResolvedValue("mock-token");
+      (tokenProvider as jest.Mock).mockResolvedValue(AuthToken.withApiToken("mock-token"));
 
       // Mock network error
       const networkError = new Error("Network connection failed");

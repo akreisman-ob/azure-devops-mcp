@@ -3,6 +3,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
+import { AuthToken } from "./authToken.js";
 import { TestPlanCreateParams } from "azure-devops-node-api/interfaces/TestPlanInterfaces.js";
 import { z } from "zod";
 
@@ -17,7 +18,7 @@ const Test_Plan_Tools = {
   create_test_suite: "testplan_create_test_suite",
 };
 
-function configureTestPlanTools(server: McpServer, _: () => Promise<string>, connectionProvider: () => Promise<WebApi>) {
+function configureTestPlanTools(server: McpServer, _: () => Promise<AuthToken>, connectionProvider: () => Promise<WebApi>) {
   server.tool(
     Test_Plan_Tools.list_test_plans,
     "Retrieve a paginated list of test plans from an Azure DevOps project. Allows filtering for active plans and toggling detailed information.",

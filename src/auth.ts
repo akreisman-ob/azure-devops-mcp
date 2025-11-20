@@ -4,8 +4,10 @@
 import { AzureCliCredential, ChainedTokenCredential, DefaultAzureCredential, TokenCredential } from "@azure/identity";
 import { AccountInfo, AuthenticationResult, PublicClientApplication } from "@azure/msal-node";
 import open from "open";
+import { AuthToken } from "./tools/authToken.js";
 
 const scopes = ["499b84ac-1321-427f-aa17-267ca6975798/.default"];
+
 
 class OAuthAuthenticator {
   static clientId = "0d50963b-7bb9-4fe7-94c7-a99af00b5136";
@@ -60,8 +62,17 @@ class OAuthAuthenticator {
   }
 }
 
-function createAuthenticator(type: string, tenantId?: string): () => Promise<string> {
+function createAuthenticator(type: string, tenantId?: string): () => Promise<AuthToken> {
   switch (type) {
+    case "pat":
+      // Read token from fixed environment variable
+      return async () => {
+        const pat = process.env["ADO_MCP_PAT"];
+        if (!pat) {
+          throw new Error("Environment variable 'ADO_MCP_PAT' is not set or empty. Please set it with a valid Azure DevOps Personal Access Token.");
+        }
+        return AuthToken.withPAT(pat);
+      };
     case "envvar":
       // Read token from fixed environment variable
       return async () => {
@@ -69,7 +80,7 @@ function createAuthenticator(type: string, tenantId?: string): () => Promise<str
         if (!token) {
           throw new Error("Environment variable 'ADO_MCP_AUTH_TOKEN' is not set or empty. Please set it with a valid Azure DevOps Personal Access Token.");
         }
-        return token;
+        return AuthToken.withApiToken(token);
       };
 
     case "azcli":
@@ -88,14 +99,15 @@ function createAuthenticator(type: string, tenantId?: string): () => Promise<str
         if (!result) {
           throw new Error("Failed to obtain Azure DevOps token. Ensure you have Azure CLI logged or use interactive type of authentication.");
         }
-        return result.token;
+        return AuthToken.withApiToken(result.token);
       };
 
     default:
       const authenticator = new OAuthAuthenticator(tenantId);
-      return () => {
-        return authenticator.getToken();
+      return async () => {
+        const token = await authenticator.getToken();
+        return AuthToken.withApiToken(token);
       };
   }
 }
-export { createAuthenticator };
+export { createAuthenticator, AuthToken };

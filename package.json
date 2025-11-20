@@ -1,6 +1,6 @@
 {
   "name": "@azure-devops/mcp",
-  "version": "2.2.2",
+  "version": "2.2.2-pat",
   "description": "MCP server for interacting with Azure DevOps",
   "license": "MIT",
   "author": "Microsoft Corporation",
