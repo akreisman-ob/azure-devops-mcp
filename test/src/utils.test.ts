@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { AlertType, AlertValidityStatus, Confidence, Severity, State } from "azure-devops-node-api/interfaces/AlertInterfaces";
-import { createEnumMapping, encodeFormattedValue, getEnumKeys, mapStringArrayToEnum, mapStringToEnum, safeEnumConvert } from "../../src/utils";
+import { createEnumMapping, encodeFormattedValue, filterJsonByPaths, getEnumKeys, mapStringArrayToEnum, mapStringToEnum, safeEnumConvert } from "../../src/utils";
 
 describe("utils", () => {
   describe("createEnumMapping", () => {
@@ -468,3 +468,215 @@ describe("encodeFormattedValue", () => {
     });
   });
 });
+
+describe("filterJsonByPaths", () => {
+  const testData = {
+    id: "00001",
+    name: "foo",
+    child: [
+      { N: "001", M: 123 },
+      { N: "002", M: 456 }
+    ],
+    parent: {
+      foo: {
+        x: 1,
+        y: 2
+      }
+    }
+  };
+
+  describe("no filters", () => {
+    it("should return original data when propertyFilters is undefined", () => {
+      const result = filterJsonByPaths(testData, undefined);
+      expect(result).toEqual(testData);
+    });
+
+    it("should return original data when propertyFilters is empty array", () => {
+      const result = filterJsonByPaths(testData, []);
+      expect(result).toEqual(testData);
+    });
+  });
+
+  describe("top-level properties", () => {
+    it("should filter single top-level property", () => {
+      const result = filterJsonByPaths(testData, ["id"]);
+      expect(result).toEqual({ id: "00001" });
+    });
+
+    it("should filter multiple top-level properties", () => {
+      const result = filterJsonByPaths(testData, ["id", "name"]);
+      expect(result).toEqual({
+        id: "00001",
+        name: "foo"
+      });
+    });
+
+    it("should include entire nested object when filtering top-level property", () => {
+      const result = filterJsonByPaths(testData, ["id", "parent"]);
+      expect(result).toEqual({
+        id: "00001",
+        parent: {
+          foo: {
+            x: 1,
+            y: 2
+          }
+        }
+      });
+    });
+  });
+
+  describe("nested properties", () => {
+    it("should filter nested property in array", () => {
+      const result = filterJsonByPaths(testData, ["child.N"]);
+      expect(result).toEqual({
+        child: [
+          { N: "001" },
+          { N: "002" }
+        ]
+      });
+    });
+
+    it("should filter multiple nested properties in array", () => {
+      const result = filterJsonByPaths(testData, ["child.N", "child.M"]);
+      expect(result).toEqual({
+        child: [
+          { N: "001", M: 123 },
+          { N: "002", M: 456 }
+        ]
+      });
+    });
+
+    it("should filter deeply nested property in object", () => {
+      const result = filterJsonByPaths(testData, ["parent.foo.x"]);
+      expect(result).toEqual({
+        parent: {
+          foo: {
+            x: 1
+          }
+        }
+      });
+    });
+
+    it("should filter multiple nested properties in object", () => {
+      const result = filterJsonByPaths(testData, ["parent.foo.x", "parent.foo.y"]);
+      expect(result).toEqual({
+        parent: {
+          foo: {
+            x: 1,
+            y: 2
+          }
+        }
+      });
+    });
+  });
+
+  describe("mixed filters", () => {
+    it("should filter mix of top-level and nested properties", () => {
+      const result = filterJsonByPaths(testData, ["id", "child.N"]);
+      expect(result).toEqual({
+        id: "00001",
+        child: [
+          { N: "001" },
+          { N: "002" }
+        ]
+      });
+    });
+
+    it("should filter nested properties from different branches", () => {
+      const result = filterJsonByPaths(testData, ["child.N", "parent.foo.x"]);
+      expect(result).toEqual({
+        child: [
+          { N: "001" },
+          { N: "002" }
+        ],
+        parent: {
+          foo: {
+            x: 1
+          }
+        }
+      });
+    });
+  });
+
+  describe("non-existent properties", () => {
+    it("should ignore non-existent top-level property", () => {
+      const result = filterJsonByPaths(testData, ["nonexistent"]);
+      expect(result).toEqual({});
+    });
+
+    it("should ignore non-existent nested property", () => {
+      const result = filterJsonByPaths(testData, ["parent.nonexistent"]);
+      expect(result).toEqual({});
+    });
+
+    it("should filter valid properties and ignore non-existent ones", () => {
+      const result = filterJsonByPaths(testData, ["id", "nonexistent", "name"]);
+      expect(result).toEqual({
+        id: "00001",
+        name: "foo"
+      });
+    });
+  });
+
+  describe("edge cases", () => {
+    it("should handle null data", () => {
+      const result = filterJsonByPaths(null, ["id"]);
+      expect(result).toBeNull();
+    });
+
+    it("should handle primitive data", () => {
+      const result = filterJsonByPaths("string value", ["id"]);
+      expect(result).toBe("string value");
+    });
+
+    it("should handle empty object", () => {
+      const result = filterJsonByPaths({}, ["id"]);
+      expect(result).toEqual({});
+    });
+
+    it("should handle array of objects at top level", () => {
+      const arrayData = [
+        { id: "1", name: "foo" },
+        { id: "2", name: "bar" }
+      ];
+      const result = filterJsonByPaths(arrayData, ["id"]);
+      expect(result).toEqual([
+        { id: "1" },
+        { id: "2" }
+      ]);
+    });
+
+    it("should handle array of primitives", () => {
+      const arrayData = [1, 2, 3];
+      const result = filterJsonByPaths(arrayData, ["id"]);
+      expect(result).toEqual([1, 2, 3]);
+    });
+
+    it("should handle deeply nested structures", () => {
+      const deepData = {
+        level1: {
+          level2: {
+            level3: {
+              level4: {
+                value: "deep"
+              }
+            }
+          }
+        }
+      };
+      const result = filterJsonByPaths(deepData, ["level1.level2.level3.level4.value"]);
+      expect(result).toEqual({
+        level1: {
+          level2: {
+            level3: {
+              level4: {
+                value: "deep"
+              }
+            }
+          }
+        }
+      });
+    });
+  });
+});
+

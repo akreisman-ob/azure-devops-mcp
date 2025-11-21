@@ -72,3 +72,69 @@ export function encodeFormattedValue(value: string, format?: "Markdown" | "Html"
   const result = value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return result;
 }
+
+export function filterJsonByPaths(data: any, propertyFilters?: string[], currentPath: string = ''): any {
+  // If no filters provided, return original data
+  if (!propertyFilters || propertyFilters.length === 0) {
+    return data;
+  }
+
+  // If data is not an object, return as is
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+
+  // Handle arrays - apply function for each element
+  if (Array.isArray(data)) {
+    return data.map(item => filterJsonByPaths(item, propertyFilters, currentPath));
+  }
+
+  // Handle objects
+  const result: any = {};
+
+  for (const key in data) {
+    if (!data.hasOwnProperty(key)) {
+      continue;
+    }
+
+    // Build the current property path
+    const propertyPath = currentPath ? `${currentPath}.${key}` : key;
+
+    // Check if current path matches any filter
+    let hasExactMatch = false;
+    let hasPrefix = false;
+
+    for (const filter of propertyFilters) {
+      if (filter === propertyPath) {
+        // Exact match - copy the entire property to result
+        hasExactMatch = true;
+        break;
+      } else if (filter.startsWith(propertyPath + '.')) {
+        // Filter starts with current path - need to recurse
+        hasPrefix = true;
+      }
+    }
+
+    if (hasExactMatch) {
+      // Copy the entire property value
+      result[key] = data[key];
+    } else if (hasPrefix) {
+      // Recursively filter the nested value
+      const filtered = filterJsonByPaths(data[key], propertyFilters, propertyPath);
+
+      // Only add if the filtered result has content
+      if (filtered !== null && typeof filtered === 'object') {
+        if (Array.isArray(filtered)) {
+          if (filtered.length > 0) {
+            result[key] = filtered;
+          }
+        } else if (Object.keys(filtered).length > 0) {
+          result[key] = filtered;
+        }
+      }
+    }
+    // If no match and no prefix - skip this property
+  }
+
+  return result;
+}

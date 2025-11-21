@@ -28,12 +28,37 @@ function configureTestPlanTools(server: McpServer, _: () => Promise<AuthToken>, 
       filterActivePlans: z.boolean().default(true).describe("Filter to include only active test plans. Defaults to true."),
       includePlanDetails: z.boolean().default(false).describe("Include detailed information about each test plan."),
       continuationToken: z.string().optional().describe("Token to continue fetching test plans from a previous request."),
+      nameFilter: z.string().optional().describe("Filter test plans by name. Only test plans whose name contains this value will be returned."),
     },
-    async ({ project, filterActivePlans, includePlanDetails, continuationToken }) => {
+    async ({ project, filterActivePlans, includePlanDetails, continuationToken, nameFilter }) => {
       const owner = ""; //making owner an empty string untill we can figure out how to get owner id
       const connection = await connectionProvider();
       const testPlanApi = await connection.getTestPlanApi();
 
+      // If nameFilter is specified, iterate over all pages and filter
+      if (nameFilter) {
+        const allFilteredPlans = [];
+        let currentToken: string | undefined = continuationToken;
+
+        do {
+          const testPlans = await testPlanApi.getTestPlans(project, owner, currentToken, includePlanDetails, filterActivePlans);
+
+          // Filter plans by name
+          const filtered = Array.from(testPlans).filter((plan) =>
+            plan.name && plan.name.toLowerCase().includes(nameFilter.toLowerCase())
+          );
+          allFilteredPlans.push(...filtered);
+
+          // Get continuation token for next page
+          currentToken = (testPlans as any).continuationToken;
+        } while (currentToken);
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(allFilteredPlans, null, 2) }],
+        };
+      }
+
+      // No name filter - return single page as before
       const testPlans = await testPlanApi.getTestPlans(project, owner, continuationToken, includePlanDetails, filterActivePlans);
 
       return {

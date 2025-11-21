@@ -5,7 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebApi } from "azure-devops-node-api";
 import { AuthToken } from "./authToken.js";
 import { z } from "zod";
-import { getEnumKeys, safeEnumConvert } from "../utils.js";
+import { getEnumKeys, safeEnumConvert, filterJsonByPaths } from "../utils.js";
 import {
   ReleaseStatus,
   ReleaseExpands,
@@ -157,8 +157,10 @@ function configureReleaseTools(
           path
         );
 
+        const filteredReleases = filterJsonByPaths(releases, propertyFilters);
+
         return {
-          content: [{ type: "text", text: JSON.stringify(releases, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(filteredReleases, null, 2) }],
         };
       } catch (error) {
         const errorMessage =
@@ -215,8 +217,10 @@ function configureReleaseTools(
           topGateRecords
         );
 
+        const filteredRelease = filterJsonByPaths(release, propertyFilters);
+
         return {
-          content: [{ type: "text", text: JSON.stringify(release, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(filteredRelease, null, 2) }],
         };
       } catch (error) {
         const errorMessage =
@@ -327,8 +331,10 @@ function configureReleaseTools(
           searchTextContainsFolderName
         );
 
+        const filteredDefinitions = filterJsonByPaths(definitions, propertyFilters);
+
         return {
-          content: [{ type: "text", text: JSON.stringify(definitions, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(filteredDefinitions, null, 2) }],
         };
       } catch (error) {
         const errorMessage =
@@ -365,8 +371,10 @@ function configureReleaseTools(
           propertyFilters
         );
 
+        const filteredDefinition = filterJsonByPaths(definition, propertyFilters);
+
         return {
-          content: [{ type: "text", text: JSON.stringify(definition, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(filteredDefinition, null, 2) }],
         };
       } catch (error) {
         const errorMessage =
